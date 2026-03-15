@@ -203,7 +203,7 @@ function Reservations({ reservations, apiUrl, onConvert }) {
   const [done, setDone] = useState({});
   const [toast, setToast] = useState(null);
   const filters = [{ key:"all",label:"すべて"},{key:"yoyaku",label:"要予約"},{key:"pending",label:"要確認"},{key:"confirmed",label:"確定"},{key:"reminded",label:"リマインド済"}];
-  const filtered = (filter==="all" ? reservations : filter==="yoyaku" ? reservations.filter(r=>r.prefix==="【要予約】") : reservations.filter(r=>r.status===filter)).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+  const filtered = (filter==="all" ? reservations : filter==="yoyaku" ? reservations.filter(r=>r.prefix==="【要予約】" || r.source==="優先") : reservations.filter(r=>r.status===filter)).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
   const pendingCount = reservations.filter(r => r.prefix === "【要予約】" && !done[r.id]).length;
   const convertToU = async (id) => {
     setConverting(id);
@@ -220,7 +220,7 @@ function Reservations({ reservations, apiUrl, onConvert }) {
       <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>{filters.map(f => (<button key={f.key} onClick={()=>setFilter(f.key)} style={{ background:filter===f.key ? (f.key==="yoyaku"?COLORS.orange:COLORS.accent) : COLORS.card, color:filter===f.key?"#000":COLORS.muted, border:"1px solid "+(filter===f.key?(f.key==="yoyaku"?COLORS.orange:COLORS.accent):COLORS.border), borderRadius:20, padding:"5px 14px", fontSize:12, cursor:"pointer", fontWeight:600 }}>{f.label}</button>))}</div>
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
         {filtered.map(r => {
-          const isYoyaku = r.prefix === "【要予約】"; const isDone = done[r.id];
+          const isYoyaku = r.prefix === "【要予約】" || r.source === "優先"; const isDone = done[r.id];
           return (<Card key={r.id} onClick={isYoyaku && !isDone ? () => setSelectedId(r.id) : undefined} style={{ padding:14, border: isYoyaku && !isDone ? "1px solid "+COLORS.orange+"88" : undefined, transition:"transform 0.15s" }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}><div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}><span style={{ color:COLORS.muted, fontSize:11 }}>{r.date ? r.date.slice(5).replace("-","/") : ""}</span><span style={{ color:COLORS.accent, fontWeight:700, fontSize:14 }}>{r.time}</span><span style={{ color:COLORS.text, fontWeight:600, fontSize:13 }}>{r.name}</span>{r.rank && <Badge label={rankLabel[r.rank]} color={rankColor[r.rank]} small />}</div><Badge label={isDone ? "確定" : statusLabel[r.status]} color={isDone ? COLORS.green : statusColor[r.status]} small /></div>
             <div style={{ color:COLORS.muted, fontSize:12, marginBottom:8 }}>{r.menu}　⏱ {r.duration}分</div>

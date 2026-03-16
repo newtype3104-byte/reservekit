@@ -75,6 +75,15 @@ const rankLabel = { gold:"GOLD", silver:"SILVER", standard:"STD" };
 const rankColor = { gold:C.gold, silver:"#a0aec0", standard:C.muted };
 const DAYS_JP = ["日","月","火","水","木","金","土"];
 
+const routeColors = {
+  '優先予約': "#9b6dea",
+  'ホットペッパー': '#e05c5c',
+  '事前予約': "#26c6da",
+  'LINE予約': "#4caf82",
+  '電話予約': '#5b9dee',
+  'その他': "#808080"
+};
+
 function getToday() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function getTomorrow() { const d=new Date(); d.setDate(d.getDate()+1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function getTodayLabel() { const d=new Date(); return `${d.getMonth()+1}月${d.getDate()}日（${DAYS_JP[d.getDay()]}）`; }
@@ -132,6 +141,40 @@ const StatCard = ({label,value,unit,color,icon}) => (
       {value}<span style={{ fontSize:14, color:C.muted, fontWeight:400, marginLeft:4 }}>{unit}</span>
     </div>
   </div>
+);
+
+/* ─── 経路別バー ─── */
+const RouteBar = ({label, count, total, color}) => {
+  const pct = total > 0 ? Math.round(count / total * 100) : 0;
+  if (count === 0) return null;
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 4 }}>
+        <span style={{ color:"#fff", fontSize:14, fontWeight:600 }}>{label}</span>
+        <span style={{ color: C.sub, fontSize:13, fontFamily:"'JetBrains Mono',monospace" }}>
+          {pct}%<span style={{ color:C.muted, marginLeft:6 }}>{count}件</span>
+        </span>
+      </div>
+      <div style={{ background:"#1a1a1a", borderRadius:6, height:8, overflow:"hidden" }}>
+        <div style={{ background:color, width:pct+"%", height:"100%", borderRadius:6, transition:"width 0.6s ease" }} />
+      </div>
+    </div>
+  );
+};
+
+const RouteSection = ({title, route, total}) => (
+  <Card style={{ marginBottom: 16 }}>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+      <span style={{ color:C.sub, fontSize:14, fontWeight:600 }}>{title}</span>
+      <span style={{ color:C.muted, fontSize:13 }}>合計 {total}件</span>
+    </div>
+    {Object.entries(route)
+      .sort((a,b) => b[1] - a[1])
+      .map(([key, val]) => (
+        <RouteBar key={key} label={key} count={val} total={total} color={routeColors[key] || C.muted} />
+      ))
+    }
+  </Card>
 );
 
 /* ─── データ取得フック ─── */
@@ -259,6 +302,12 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
 
   const todays=reservations.filter(r=>r.date===today).sort((a,b)=>a.time.localeCompare(b.time));
 
+  // 経路データ
+  const monthRoute = homeStats?.monthRoute || null;
+  const yearRoute = homeStats?.yearRoute || null;
+  const monthRouteTotal = monthRoute ? Object.values(monthRoute).reduce((a,b)=>a+b, 0) : 0;
+  const yearRouteTotal = yearRoute ? Object.values(yearRoute).reduce((a,b)=>a+b, 0) : 0;
+
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -304,6 +353,14 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
             <div style={{ color:C.muted, fontSize:13 }}>予約タブで対応 →</div>
           </div>
         </div>
+      )}
+
+      {/* ─── 経路別パーセンテージ ─── */}
+      {monthRoute && monthRouteTotal > 0 && (
+        <RouteSection title="📈 今月の予約経路" route={monthRoute} total={monthRouteTotal} />
+      )}
+      {yearRoute && yearRouteTotal > 0 && (
+        <RouteSection title="📊 今年の予約経路" route={yearRoute} total={yearRouteTotal} />
       )}
 
       <Card>
@@ -506,7 +563,6 @@ function Reservations({reservations,apiUrl,onConvert}) {
           </Card>
         ) : filtered.map((r,i)=>{
           const isYoyaku=r.prefix==="【要予約】";const isDone=done[r.id];const isSbReady=sbDone[r.id];
-          /* カード背景色：ソース別 */
           const isBlueSource = r.source==="事前予約"||r.source==="電話"||r.source==="優先"||r.prefix==="【N】"||r.prefix==="【U】"||r.prefix==="【T】";
           const cardBg = isYoyaku&&!isDone ? "#332a24"
             : r.source==="Hotpepper" ? "#3a1a1a"

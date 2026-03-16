@@ -5,15 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0f1117">
+<meta name="theme-color" content="#0d0d0d">
 <title>ReserveKit</title>
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body { background:#0f1117; font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
+  body { background:#0d0d0d; font-family:'Noto Sans JP',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; overflow-x:hidden; color:#ffffff; }
   @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes fadeToast { from { opacity:0; transform:translateX(-50%) translateY(-8px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  input::placeholder { color:#606060; }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:#1a1a1a; }
+  ::-webkit-scrollbar-thumb { background:#4a4a4a; border-radius:3px; }
 </style>
 </head>
 <body>
@@ -24,269 +32,692 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
-const COLORS = {
-  bg: "#0f1117", surface: "#1a1d27", card: "#21253a", border: "#2e3350",
-  accent: "#c9a84c", accentSoft: "#c9a84c22", text: "#e8eaf0", muted: "#7a7f9a",
-  green: "#4caf82", orange: "#e8923a", red: "#e05c5c", blue: "#5b8dee", purple: "#9b6dea",
+/* ─── カラー：真っ黒ベース × 黒板グリーンアクセント ─── */
+const C = {
+  bg:      "#0d0d0d",
+  surface: "#1a1a1a",
+  card:    "#2d2d2d",
+  border:  "#3a3a3a",
+  accent:  "#66b266",
+  accentBg:"#1e4620",
+  accentBorder:"#2d6b2f",
+  text:    "#ffffff",
+  sub:     "#b0b0b0",
+  muted:   "#808080",
+  green:   "#4caf82",
+  orange:  "#e8923a",
+  red:     "#8b3a3a",
+  blue:    "#1e5a6e",
+  blueBright:"#5fb3b3",
+  purple:  "#9b6dea",
+  cyan:    "#26c6da",
+  gold:    "#c9a84c",
 };
 
 const STYLIST_ID = "T000508663";
+const GAS_API_DEFAULT = "https://script.google.com/macros/s/AKfycbxxgLMI6EpUIQBtwzYC7232rBJME2wJA6_JzmckvjkYiMvZdI6KGl9l_lKn2w6zhgzL/exec";
 
+/* ─── モックデータ ─── */
 const MOCK = [
-  { id:1, date:"2026-03-11", time:"10:00", name:"田中 雄一", kana:"タナカ ユウイチ", phone:"09012345678", email:"tanaka@example.com", menu:"カット＋シェービング", duration:60, status:"confirmed", source:"LINE", prefix:"【L】", rank:"gold", visits:34 },
-  { id:2, date:"2026-03-11", time:"11:30", name:"山田 健太", kana:"ヤマダ ケンタ", phone:"08098765432", email:"yamada@example.com", menu:"カット", duration:40, status:"pending", source:"要予約", prefix:"【要予約】", rank:"silver", visits:18 },
-  { id:3, date:"2026-03-11", time:"13:00", name:"佐藤 浩二", kana:"サトウ コウジ", phone:"07011112222", email:"sato@example.com", menu:"カット＋フットマッサージ", duration:80, status:"confirmed", source:"電話", prefix:"【T】", rank:"standard", visits:7 },
-  { id:4, date:"2026-03-11", time:"14:00", name:"蜂谷 哲史", kana:"ハチヤ サトシ", phone:"08053227267", email:"hachiya@example.com", menu:"カット＋シャンプーコース", duration:60, status:"pending", source:"要予約", prefix:"【要予約】", rank:"gold", visits:41 },
-  { id:5, date:"2026-03-11", time:"16:00", name:"中村 大輔", kana:"ナカムラ ダイスケ", phone:"09033334444", email:"nakamura@example.com", menu:"カット", duration:40, status:"confirmed", source:"Hotpepper", prefix:"", rank:"standard", visits:3 },
-  { id:6, date:"2026-03-11", time:"17:00", name:"渡辺 一郎", kana:"ワタナベ イチロウ", phone:"08011223344", email:"watanabe@example.com", menu:"カット＋シェービング", duration:60, status:"reminded", source:"事前予約", prefix:"【N】", rank:"silver", visits:12 },
+  { id:"ev1", date:"2026-03-16", time:"10:00", name:"田中 雄一", kana:"タナカ ユウイチ", phone:"09012345678", menu:"カット＋シェービング", duration:60, status:"confirmed", source:"LINE", prefix:"【L】", rank:"gold", visits:34 },
+  { id:"ev2", date:"2026-03-16", time:"11:30", name:"山田 健太", kana:"ヤマダ ケンタ", phone:"08098765432", menu:"カット", duration:40, status:"pending", source:"要予約", prefix:"【要予約】", rank:"silver", visits:18 },
+  { id:"ev3", date:"2026-03-16", time:"13:00", name:"佐藤 浩二", kana:"サトウ コウジ", phone:"07011112222", menu:"カット＋フットマッサージ", duration:80, status:"confirmed", source:"電話", prefix:"【T】", rank:"standard", visits:7 },
+  { id:"ev4", date:"2026-03-16", time:"14:00", name:"蜂谷 哲史", kana:"ハチヤ サトシ", phone:"08053227267", menu:"カット＋シャンプーコース", duration:60, status:"pending", source:"要予約", prefix:"【要予約】", rank:"gold", visits:41 },
+  { id:"ev5", date:"2026-03-16", time:"16:00", name:"中村 大輔", kana:"ナカムラ ダイスケ", phone:"09033334444", menu:"カット", duration:40, status:"confirmed", source:"Hotpepper", prefix:"", rank:"standard", visits:3 },
+  { id:"ev6", date:"2026-03-17", time:"10:00", name:"渡辺 一郎", kana:"ワタナベ イチロウ", phone:"08011223344", menu:"カット＋シェービング", duration:60, status:"confirmed", source:"事前予約", prefix:"【N】", rank:"silver", visits:12 },
 ];
 
-const MOCK_CUSTOMERS = [
-  { id:1, name:"田中 雄一", kana:"タナカ ユウイチ", visits:34, rank:"gold", lastVisit:"2026/02/28", source:"LINE", memo:"右側のもみあげ短めが好み" },
-  { id:2, name:"山田 健太", kana:"ヤマダ ケンタ", visits:18, rank:"silver", lastVisit:"2026/03/01", source:"Hotpepper", memo:"" },
-  { id:3, name:"佐藤 浩二", kana:"サトウ コウジ", visits:7, rank:"standard", lastVisit:"2026/02/15", source:"電話", memo:"首のコリがひどい" },
-];
-
-const srcColor = s => ({ LINE:COLORS.green, Hotpepper:COLORS.red, "電話":COLORS.blue, "優先":COLORS.purple, "要予約":COLORS.orange, "事前予約":"#26c6da" }[s] || COLORS.muted);
+/* ─── ヘルパー ─── */
+const srcColor = s => ({ LINE:C.green, Hotpepper:"#e05c5c", "電話":"#5b9dee", "優先":C.purple, "要予約":C.orange, "事前予約":C.cyan }[s] || C.muted);
 const statusLabel = { confirmed:"確定", pending:"要確認", reminded:"リマインド済" };
-const statusColor = { confirmed:COLORS.blue, pending:COLORS.orange, reminded:COLORS.purple };
+const statusBg = { confirmed:C.blue, pending:C.red, reminded:"#4a2d6e" };
 const rankLabel = { gold:"GOLD", silver:"SILVER", standard:"STD" };
-const rankColor = { gold:COLORS.accent, silver:"#a0aec0", standard:COLORS.muted };
+const rankColor = { gold:C.gold, silver:"#a0aec0", standard:C.muted };
 const DAYS_JP = ["日","月","火","水","木","金","土"];
 
-function getToday() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function getToday() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function getTomorrow() { const d=new Date(); d.setDate(d.getDate()+1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function getTodayLabel() { const d=new Date(); return `${d.getMonth()+1}月${d.getDate()}日（${DAYS_JP[d.getDay()]}）`; }
+function getTodayShort() { const d=new Date(); return `${d.getMonth()+1}/${d.getDate()} ${DAYS_JP[d.getDay()]}`; }
+function getWeekRange() {
+  const now=new Date(), day=now.getDay();
+  const mon=new Date(now); mon.setDate(now.getDate()-(day===0?6:day-1));
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const f=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  return [f(mon),f(sun)];
 }
-function getTodayLabel() {
-  const d = new Date();
-  return `${d.getMonth()+1}月${d.getDate()}日（${DAYS_JP[d.getDay()]}）`;
+function getMonthRange() {
+  const now=new Date();
+  const first=new Date(now.getFullYear(),now.getMonth(),1);
+  const last=new Date(now.getFullYear(),now.getMonth()+1,0);
+  const f=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  return [f(first),f(last)];
 }
-function getTodayShort() {
-  const d = new Date();
-  return `${d.getMonth()+1}月${d.getDate()}日 ${DAYS_JP[d.getDay()]}`;
-}
-
 function getSalonBoardUrl(r) {
-  const dateParam = r.date.replace(/-/g, "");
-  const timeParam = r.time.replace(":", "") + (r.time.length === 4 ? "00" : "");
-  const now = new Date().toISOString().replace(/[-T:.Z]/g, "").slice(0, 14);
+  const dateParam=r.date.replace(/-/g,"");
+  const timeParam=r.time.replace(":","")+"00";
+  const now=new Date().toISOString().replace(/[-T:.Z]/g,"").slice(0,14);
   return `https://salonboard.com/CLP/bt/reserve/ext/extReserveRegist/?date=${dateParam}&time=${timeParam}&stylistId=${STYLIST_ID}&rlastupdate=${now}`;
 }
+function formatPhone(phone) { return phone ? phone.replace(/[-\s]/g,"") : ""; }
 
-const Badge = ({ label, color, small }) => (<span style={{ background:color+"22", color, border:`1px solid ${color}55`, borderRadius:4, padding:small?"1px 6px":"2px 8px", fontSize:small?10:11, fontWeight:700, letterSpacing:0.5 }}>{label}</span>);
-const Card = ({ children, style, onClick }) => (<div onClick={onClick} style={{ background:COLORS.card, border:`1px solid ${COLORS.border}`, borderRadius:12, padding:16, cursor:onClick?"pointer":"default", ...style }}>{children}</div>);
+/* ─── UI部品 ─── */
+const Badge = ({label,color,bg}) => (
+  <span style={{
+    background:bg||color+"22", color:bg?"#fff":color,
+    borderRadius:16, padding:"6px 12px",
+    fontSize:13, fontWeight:700, whiteSpace:"nowrap"
+  }}>{label}</span>
+);
 
+const Card = ({children,style,onClick}) => (
+  <div onClick={onClick} style={{
+    background:C.card, borderRadius:12, padding:20,
+    boxShadow:"0 2px 8px rgba(0,0,0,0.3)",
+    cursor:onClick?"pointer":"default",
+    ...style
+  }}>{children}</div>
+);
+
+const StatCard = ({label,value,unit,color,icon}) => (
+  <div style={{
+    background:C.card, borderRadius:12, padding:"16px 18px",
+    boxShadow:"0 2px 8px rgba(0,0,0,0.3)"
+  }}>
+    <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:8 }}>
+      <span style={{ fontSize:16 }}>{icon}</span>
+      <span style={{ color:C.sub, fontSize:14, fontWeight:600 }}>{label}</span>
+    </div>
+    <div style={{ color, fontSize:32, fontWeight:800, lineHeight:1 }}>
+      {value}<span style={{ fontSize:14, color:C.muted, fontWeight:400, marginLeft:4 }}>{unit}</span>
+    </div>
+  </div>
+);
+
+/* ─── データ取得フック ─── */
 function useReservations(apiUrl) {
-  const [data, setData] = useState(MOCK);
-  const [customers, setCustomers] = useState(MOCK_CUSTOMERS);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [lastFetched, setLastFetched] = useState(null);
-  const isReal = apiUrl && !apiUrl.includes("YOUR_DEPLOYMENT_ID");
-  const fetch_ = useCallback(async () => {
-    if (!isReal) { setData(MOCK); setCustomers(MOCK_CUSTOMERS); setError(null); return; }
-    setLoading(true); setError(null);
-    try {
-      const r = await fetch(apiUrl + "?action=getReservations");
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      const j = await r.json();
-      if (j.reservations) setData(j.reservations);
-      if (j.customers) setCustomers(j.customers);
+  const [data,setData]=useState(MOCK);
+  const [homeStats,setHomeStats]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState(null);
+  const [lastFetched,setLastFetched]=useState(null);
+  const isReal=apiUrl && !apiUrl.includes("YOUR_DEPLOYMENT_ID");
+
+  const fetchReservations=useCallback(async()=>{
+    if(!isReal){setData(MOCK);setError(null);return;}
+    setLoading(true);setError(null);
+    try{
+      const r=await fetch(apiUrl+"?action=getReservations");
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const j=await r.json();
+      if(j.reservations)setData(j.reservations);
       setLastFetched(new Date());
-    } catch(e) { setError(e.message); setData(MOCK); setCustomers(MOCK_CUSTOMERS); } finally { setLoading(false); }
-  }, [apiUrl, isReal]);
-  useEffect(() => { fetch_(); }, [fetch_]);
-  const updateLocal = (id, changes) => { setData(prev => prev.map(r => r.id === id ? { ...r, ...changes } : r)); };
-  return { data, customers, loading, error, refetch: fetch_, isReal, lastFetched, updateLocal };
+    }catch(e){setError(e.message);setData(MOCK);}
+    finally{setLoading(false);}
+  },[apiUrl,isReal]);
+
+  const fetchHomeStats=useCallback(async()=>{
+    if(!isReal){setHomeStats(null);return;}
+    try{
+      const r=await fetch(apiUrl+"?action=getHomeStats");
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const j=await r.json();
+      setHomeStats(j);
+    }catch(e){console.error("getHomeStats:",e);setHomeStats(null);}
+  },[apiUrl,isReal]);
+
+  const refetch=useCallback(()=>{fetchReservations();fetchHomeStats();},[fetchReservations,fetchHomeStats]);
+  useEffect(()=>{refetch();},[refetch]);
+  const updateLocal=(id,changes)=>{setData(prev=>prev.map(r=>r.id===id?{...r,...changes}:r));};
+  return {data,homeStats,loading,error,refetch,isReal,lastFetched,updateLocal};
 }
 
-function SalonBoardSheet({ reservation, onClose, onConvert, converting }) {
-  const r = reservation;
-  if (!r) return null;
-  const details = [
-    { label: "日時", value: r.date.slice(5).replace("-","/") + " " + r.time },
-    { label: "メニュー", value: r.menu },
-    { label: "所要時間", value: r.duration + "分" },
-    { label: "電話番号", value: r.phone || "—" },
-  ];
+/* ─── SalonBoardボトムシート ─── */
+function SalonBoardSheet({reservation:r,onClose,converting}) {
+  const [phoneCopied,setPhoneCopied]=useState(false);
+  if(!r)return null;
+
+  const copyPhone=async()=>{
+    const num=formatPhone(r.phone);
+    if(!num)return;
+    try{ await navigator.clipboard.writeText(num); }
+    catch(e){
+      const ta=document.createElement("textarea");
+      ta.value=num;ta.style.position="fixed";ta.style.opacity="0";
+      document.body.appendChild(ta);ta.select();document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setPhoneCopied(true);
+    setTimeout(()=>setPhoneCopied(false),2000);
+  };
+
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:100, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-      <div onClick={onClose} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.6)", backdropFilter:"blur(3px)" }} />
-      <div style={{ position:"relative", width:"100%", maxWidth:480, background: COLORS.surface, borderRadius:"16px 16px 0 0", padding:"8px 20px 32px", boxShadow:"0 -4px 32px rgba(0,0,0,0.4), 0 0 0 1px "+COLORS.border, animation:"sheetUp 0.3s ease-out" }}>
-        <div style={{ textAlign:"center", padding:"8px 0 14px" }}><div style={{ width:32, height:3, borderRadius:2, background:COLORS.border, margin:"0 auto" }} /></div>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
-          <div><div style={{ color:COLORS.text, fontSize:20, fontWeight:700 }}>{r.name}</div><div style={{ color:COLORS.muted, fontSize:12, marginTop:2 }}>{r.kana || ""}</div></div>
-          <Badge label="要予約" color={COLORS.orange} />
+    <div style={{ position:"fixed", inset:0, zIndex:1000, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
+      <div onClick={()=>onClose(true)} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.8)" }} />
+      <div style={{
+        position:"relative", width:"100%", maxWidth:480,
+        background:C.card, borderRadius:"24px 24px 0 0",
+        padding:"28px", boxShadow:"0 -4px 40px rgba(0,0,0,0.5)",
+        borderTop:`3px solid ${C.accentBorder}`,
+        animation:"sheetUp 0.3s ease-out"
+      }}>
+        <h3 style={{ color:C.text, fontSize:22, fontWeight:800, marginBottom:20 }}>SalonBoard連携</h3>
+
+        {/* 予約情報 */}
+        <div style={{
+          background:C.surface, padding:18, borderRadius:12,
+          marginBottom:20, border:`2px solid ${C.border}`
+        }}>
+          {[["顧客名",r.name],["日時",r.date.slice(5).replace("-","/")+" "+r.time],["メニュー",r.menu],["電話",r.phone||"—"]].map(([k,v])=>(
+            <p key={k} style={{ margin:"10px 0", fontSize:16, color:C.sub, lineHeight:1.6 }}>
+              <strong style={{ color:C.text }}>{k}：</strong>{v}
+            </p>
+          ))}
         </div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:20 }}>
-          {details.map((d, i) => (<div key={i} style={{ background:COLORS.card, borderRadius:8, padding:"10px 12px", border:"1px solid "+COLORS.border }}><div style={{ color:COLORS.muted, fontSize:10, marginBottom:3 }}>{d.label}</div><div style={{ color:COLORS.text, fontSize:13, fontWeight:600 }}>{d.value}</div></div>))}
+
+        {/* アクションボタン群 */}
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <button onClick={copyPhone} style={{
+            background:phoneCopied?C.accentBg:C.blue, color:"#fff", padding:18,
+            border:`2px solid ${phoneCopied?C.accentBorder:"#2d7a90"}`,
+            borderRadius:12, fontSize:17, fontWeight:700, cursor:"pointer",
+            minHeight:60, textAlign:"center", lineHeight:1.5
+          }}>
+            {phoneCopied ? "✅ コピーしました" : <>📋 電話番号コピー<br/><span style={{ fontFamily:"'JetBrains Mono',monospace" }}>{formatPhone(r.phone)}</span></>}
+          </button>
+
+          <a href={getSalonBoardUrl(r)} target="_blank" rel="noopener noreferrer" style={{
+            display:"flex", alignItems:"center", justifyContent:"center",
+            background:C.accentBg, color:"#fff", padding:18,
+            border:`2px solid ${C.accentBorder}`,
+            borderRadius:12, fontSize:17, fontWeight:700,
+            textDecoration:"none", minHeight:60
+          }}>📝 SalonBoardに書き込む</a>
+
+          <button onClick={()=>onClose(true)} style={{
+            background:"#3a3a3a", color:C.sub, padding:18,
+            border:"2px solid #4a4a4a",
+            borderRadius:12, fontSize:17, fontWeight:700, cursor:"pointer", minHeight:60
+          }}>閉じる（U変換ボタン有効化）</button>
         </div>
-        <a href={getSalonBoardUrl(r)} target="_blank" rel="noopener noreferrer" style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"13px 0", boxSizing:"border-box", background:"linear-gradient(135deg, "+COLORS.blue+", #4a7bd4)", color:"#fff", borderRadius:10, fontSize:13, fontWeight:700, textDecoration:"none", marginBottom:8, boxShadow:"0 2px 12px "+COLORS.blue+"44", letterSpacing:0.3 }}>📝 サロンボードに書き込む</a>
-        <div style={{ textAlign:"center", fontSize:10, color:COLORS.muted, marginBottom:18 }}>日時・スタイリスト入力済みで開きます</div>
-        <button onClick={() => onConvert(r.id)} disabled={converting} style={{ width:"100%", padding:"13px 0", boxSizing:"border-box", background: converting ? COLORS.card : "linear-gradient(135deg, "+COLORS.purple+", #b47eff)", color:"#fff", border:"none", borderRadius:10, fontSize:13, fontWeight:700, cursor: converting ? "not-allowed" : "pointer", boxShadow: converting ? "none" : "0 2px 12px "+COLORS.purple+"44", display:"flex", alignItems:"center", justifyContent:"center", gap:8, letterSpacing:0.3 }}>
-          {converting ? (<><span style={{ display:"inline-block", width:14, height:14, border:"2px solid #fff", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />変換中…</>) : (<>✓ 書き込み完了 →【U】に変換</>)}
-        </button>
-        <div style={{ textAlign:"center", fontSize:10, color:COLORS.muted, marginTop:8 }}>カレンダーが紫に変わり、確定通知が送信されます</div>
       </div>
     </div>
   );
 }
 
-function Dashboard({ reservations, loading, error, refetch, isReal, lastFetched }) {
-  const today = getToday();
-  const todays = reservations.filter(r => r.date === today);
-  const remindCount = reservations.filter(r => r.status === "reminded").length;
-  const pendingCount = reservations.filter(r => r.prefix === "【要予約】").length;
-  const stats = [
-    { label:"本日の予約", value:todays.length, unit:"件", color:COLORS.blue },
-    { label:"確定", value:todays.filter(r=>r.status==="confirmed").length, unit:"件", color:COLORS.green },
-    { label:"要確認", value:todays.filter(r=>r.status==="pending").length, unit:"件", color:COLORS.orange },
-    { label:"リマインド必要", value:remindCount, unit:"件", color:COLORS.purple },
-  ];
-  const sources = ["LINE","Hotpepper","事前予約","電話","優先"].map(s=>({ label:s, count:todays.filter(r=>r.source===s).length, color:srcColor(s) })).filter(s=>s.count>0);
+/* ─── ホーム画面 ─── */
+function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetched}) {
+  const today=getToday(), tomorrow=getTomorrow();
+  const [weekStart,weekEnd]=getWeekRange();
+  const [monthStart,monthEnd]=getMonthRange();
+
+  const todayCount  = homeStats?.todayCount  ?? reservations.filter(r=>r.date===today).length;
+  const weekCount   = homeStats?.weekCount   ?? reservations.filter(r=>r.date>=weekStart&&r.date<=weekEnd).length;
+  const monthCount  = homeStats?.monthCount  ?? reservations.filter(r=>r.date>=monthStart&&r.date<=monthEnd).length;
+  const pendingCount= homeStats?.pendingCount?? reservations.filter(r=>r.status==="pending"||r.prefix==="【要予約】").length;
+  const remindNeed  = homeStats?.remindNeedCount ?? reservations.filter(r=>r.date===tomorrow&&r.status!=="reminded").length;
+
+  const todays=reservations.filter(r=>r.date===today).sort((a,b)=>a.time.localeCompare(b.time));
+
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-        <h2 style={{ color:COLORS.text, fontSize:18, margin:0 }}>{getTodayLabel()}</h2>
-        <button onClick={refetch} disabled={loading} style={{ background:COLORS.card, border:"1px solid "+COLORS.border, color:loading?COLORS.muted:COLORS.accent, borderRadius:8, padding:"5px 12px", fontSize:11, cursor:"pointer" }}>{loading ? "読込中…" : "↻ 更新"}</button>
+        <h2 style={{ color:C.text, fontSize:20, fontWeight:800 }}>{getTodayLabel()}</h2>
+        <button onClick={refetch} disabled={loading} style={{
+          background:C.card, border:`2px solid ${C.border}`, color:loading?C.muted:C.accent,
+          borderRadius:10, padding:"8px 16px", fontSize:14, cursor:"pointer", fontWeight:600
+        }}>{loading?"読込中…":"↻ 更新"}</button>
       </div>
-      <div style={{ background: isReal ? COLORS.green+"22" : COLORS.orange+"22", border:"1px solid "+(isReal?COLORS.green:COLORS.orange)+"44", borderRadius:8, padding:"7px 12px", marginBottom:14, fontSize:11, color:isReal?COLORS.green:COLORS.orange }}>
-        {isReal ? "✓ GAS APIに接続中"+(lastFetched?" — "+lastFetched.toLocaleTimeString("ja-JP"):"") : "⚠ モックデータ表示中 — 設定でAPIエンドポイントを入力してください"}
-        {error && <div style={{ color:COLORS.red, marginTop:4 }}>エラー: {error}</div>}
+
+      <div style={{
+        background:isReal?C.accentBg+"44":"#8b3a3a33",
+        border:`2px solid ${isReal?C.accentBorder:"#8b3a3a"}`,
+        borderRadius:10, padding:"10px 14px", marginBottom:16,
+        fontSize:14, color:isReal?C.accent:C.orange, fontWeight:600
+      }}>
+        {isReal ? "✓ GAS API接続中"+(lastFetched?" — "+lastFetched.toLocaleTimeString("ja-JP"):"") : "⚠ モックデータ表示中"}
+        {error && <div style={{ color:"#e05c5c", marginTop:4, fontSize:13 }}>エラー: {error}</div>}
       </div>
-      {pendingCount > 0 && (<div style={{ background: COLORS.orange+"18", border:"1px solid "+COLORS.orange+"55", borderRadius:8, padding:"9px 12px", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}><span style={{ fontSize:15 }}>📝</span><span style={{ color:COLORS.orange, fontSize:12, fontWeight:600 }}>サロンボード未書き込み：{pendingCount}件</span><span style={{ color:COLORS.muted, fontSize:10, marginLeft:"auto" }}>予約タブで確認 →</span></div>)}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>{stats.map(s => (<Card key={s.label}><div style={{ color:COLORS.muted, fontSize:11, marginBottom:6 }}>{s.label}</div><div style={{ color:s.color, fontSize:26, fontWeight:800 }}>{s.value}<span style={{ fontSize:12, color:COLORS.muted, fontWeight:400 }}> {s.unit}</span></div></Card>))}</div>
-      <Card style={{ marginBottom:14 }}><div style={{ color:COLORS.muted, fontSize:11, marginBottom:10 }}>予約経路の内訳（本日）</div><div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>{sources.map(s => (<div key={s.label} style={{ display:"flex", alignItems:"center", gap:5 }}><div style={{ width:8, height:8, borderRadius:"50%", background:s.color }} /><span style={{ color:COLORS.text, fontSize:13 }}>{s.label}</span><span style={{ color:s.color, fontWeight:700, fontSize:13 }}>{s.count}</span></div>))}</div></Card>
-      <Card><div style={{ color:COLORS.muted, fontSize:11, marginBottom:10 }}>本日のタイムライン</div>{todays.sort((a,b)=>a.time.localeCompare(b.time)).map(r => (<div key={r.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:"1px solid "+COLORS.border }}><span style={{ color:COLORS.accent, fontWeight:700, width:44, fontSize:13 }}>{r.time}</span><div style={{ flex:1 }}><div style={{ color:COLORS.text, fontSize:13, fontWeight:600 }}>{r.prefix}{r.name}</div><div style={{ color:COLORS.muted, fontSize:11 }}>{r.menu} ({r.duration}分)</div></div><Badge label={statusLabel[r.status]} color={statusColor[r.status]} small /></div>))}</Card>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
+        <StatCard label="今日" value={todayCount} unit="件" color={C.accent} icon="📅" />
+        <StatCard label="今週" value={weekCount} unit="件" color={C.blueBright} icon="📊" />
+        <StatCard label="今月" value={monthCount} unit="件" color={C.cyan} icon="📈" />
+        <StatCard label="要確認" value={pendingCount} unit="件" color={C.orange} icon="⚠️" />
+      </div>
+
+      {remindNeed>0 && (
+        <div style={{ background:"#4a2d6e33", border:"2px solid #4a2d6e", borderRadius:12, padding:"14px 16px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ fontSize:18 }}>🔔</span>
+          <div>
+            <div style={{ color:C.purple, fontSize:15, fontWeight:700 }}>リマインド必要：{remindNeed}件</div>
+            <div style={{ color:C.muted, fontSize:13 }}>明日の予約で未送信</div>
+          </div>
+        </div>
+      )}
+
+      {reservations.filter(r=>r.prefix==="【要予約】").length>0 && (
+        <div style={{ background:"#8b3a3a33", border:"2px solid #8b3a3a", borderRadius:12, padding:"14px 16px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ fontSize:18 }}>📝</span>
+          <div style={{ flex:1 }}>
+            <div style={{ color:C.orange, fontSize:15, fontWeight:700 }}>SB未書き込み：{reservations.filter(r=>r.prefix==="【要予約】").length}件</div>
+            <div style={{ color:C.muted, fontSize:13 }}>予約タブで対応 →</div>
+          </div>
+        </div>
+      )}
+
+      <Card>
+        <div style={{ color:C.sub, fontSize:14, fontWeight:600, marginBottom:14 }}>🕐 本日のタイムライン</div>
+        {todays.length===0 ? (
+          <div style={{ textAlign:"center", padding:24, color:C.muted, fontSize:15 }}>本日の予約はありません</div>
+        ) : todays.map((r,i) => (
+          <div key={r.id} style={{
+            display:"flex", alignItems:"center", gap:12, padding:"12px 0",
+            borderBottom:i<todays.length-1?`1px solid ${C.border}`:"none",
+            animation:`fadeIn 0.3s ease-out ${i*0.05}s both`
+          }}>
+            <span style={{ color:C.accent, fontWeight:800, width:52, fontSize:18, fontFamily:"'JetBrains Mono',monospace" }}>{r.time}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ color:C.text, fontSize:16, fontWeight:700 }}>{r.prefix}{r.name}</div>
+              <div style={{ color:C.sub, fontSize:13, marginTop:2 }}>{r.menu}（{r.duration}分）</div>
+            </div>
+            <Badge label={statusLabel[r.status]} bg={statusBg[r.status]} />
+          </div>
+        ))}
+      </Card>
     </div>
   );
 }
 
-function Calendar({ reservations }) {
-  const [weekOffset, setWeekOffset] = useState(0);
-  const todayStr = getToday();
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-  const baseDate = new Date();
-  const weekStart = new Date(baseDate);
-  weekStart.setDate(baseDate.getDate() + weekOffset * 7 - baseDate.getDay());
-  const weekDays = Array.from({ length: 7 }, (_, i) => { const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d; });
-  const fmt = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-  const dayRes = reservations.filter(r => r.date === selectedDate).sort((a,b) => a.time.localeCompare(b.time));
-  const selDay = weekDays.find(d => fmt(d) === selectedDate);
-  const SLOTS = Array.from({ length: 21 }, (_, i) => { const h = Math.floor(i/2) + 9; const m = i%2===0 ? "00" : "30"; return h+":"+m; });
+/* ─── カレンダー画面 ─── */
+function Calendar({reservations}) {
+  const [weekOffset,setWeekOffset]=useState(0);
+  const todayStr=getToday();
+  const [selectedDate,setSelectedDate]=useState(todayStr);
+  const baseDate=new Date();
+  const weekStart=new Date(baseDate);
+  weekStart.setDate(baseDate.getDate()+weekOffset*7-baseDate.getDay());
+  const weekDays=Array.from({length:7},(_,i)=>{const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);return d;});
+  const fmt=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  const dayRes=reservations.filter(r=>r.date===selectedDate).sort((a,b)=>a.time.localeCompare(b.time));
+  const selDay=weekDays.find(d=>fmt(d)===selectedDate);
+  const SLOTS=Array.from({length:21},(_,i)=>{const h=Math.floor(i/2)+9;const m=i%2===0?"00":"30";return h+":"+m;});
+
   return (
     <div>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-        <button onClick={() => setWeekOffset(w=>w-1)} style={{ background:COLORS.card, border:"1px solid "+COLORS.border, color:COLORS.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>‹</button>
-        <span style={{ color:COLORS.text, fontSize:13, fontWeight:600 }}>{weekStart.getMonth()+1}月{weekStart.getDate()}日 〜 {weekDays[6].getMonth()+1}月{weekDays[6].getDate()}日</span>
-        <button onClick={() => setWeekOffset(w=>w+1)} style={{ background:COLORS.card, border:"1px solid "+COLORS.border, color:COLORS.accent, borderRadius:8, padding:"6px 12px", cursor:"pointer" }}>›</button>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+        <button onClick={()=>setWeekOffset(w=>w-1)} style={{ background:C.card, border:`2px solid ${C.border}`, color:C.accent, borderRadius:10, padding:"8px 16px", cursor:"pointer", fontSize:18 }}>‹</button>
+        <span style={{ color:C.text, fontSize:16, fontWeight:700 }}>{weekStart.getMonth()+1}月{weekStart.getDate()}日 〜 {weekDays[6].getMonth()+1}月{weekDays[6].getDate()}日</span>
+        <button onClick={()=>setWeekOffset(w=>w+1)} style={{ background:C.card, border:`2px solid ${C.border}`, color:C.accent, borderRadius:10, padding:"8px 16px", cursor:"pointer", fontSize:18 }}>›</button>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:16 }}>
-        {weekDays.map(d => {
-          const ds = fmt(d); const cnt = reservations.filter(r=>r.date===ds).length; const isToday = ds === todayStr; const isSel = ds === selectedDate;
-          return (<div key={ds} onClick={() => setSelectedDate(ds)} style={{ background: isSel ? COLORS.accent : isToday ? COLORS.accentSoft : COLORS.card, border: "1px solid "+(isSel ? COLORS.accent : isToday ? COLORS.accent+"88" : COLORS.border), borderRadius:8, padding:"6px 2px", textAlign:"center", cursor:"pointer" }}><div style={{ color: isSel?"#000": isToday?COLORS.accent:COLORS.muted, fontSize:9, marginBottom:2 }}>{DAYS_JP[d.getDay()]}</div><div style={{ color: isSel?"#000":COLORS.text, fontWeight:700, fontSize:14 }}>{d.getDate()}</div>{cnt > 0 && <div style={{ display:"flex", justifyContent:"center", gap:2, marginTop:3 }}>{Array.from({length:Math.min(cnt,4)},(_,i)=>(<div key={i} style={{ width:4, height:4, borderRadius:"50%", background:isSel?"#000":COLORS.accent }} />))}</div>}</div>);
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:5, marginBottom:18 }}>
+        {weekDays.map(d=>{
+          const ds=fmt(d);const cnt=reservations.filter(r=>r.date===ds).length;
+          const isToday=ds===todayStr;const isSel=ds===selectedDate;
+          return (
+            <div key={ds} onClick={()=>setSelectedDate(ds)} style={{
+              background:isSel?C.accentBg:isToday?"#1e462033":C.card,
+              border:`2px solid ${isSel?C.accentBorder:isToday?C.accentBorder+"88":C.border}`,
+              borderRadius:10, padding:"8px 2px", textAlign:"center", cursor:"pointer"
+            }}>
+              <div style={{ color:isSel?"#fff":isToday?C.accent:C.muted, fontSize:12, marginBottom:2, fontWeight:600 }}>{DAYS_JP[d.getDay()]}</div>
+              <div style={{ color:isSel?"#fff":C.text, fontWeight:800, fontSize:18 }}>{d.getDate()}</div>
+              {cnt>0 && <div style={{ display:"flex", justifyContent:"center", gap:2, marginTop:4 }}>
+                {Array.from({length:Math.min(cnt,4)},(_,i)=>(
+                  <div key={i} style={{ width:5, height:5, borderRadius:"50%", background:isSel?"#fff":C.accent }} />
+                ))}
+              </div>}
+            </div>
+          );
         })}
       </div>
-      <div style={{ color:COLORS.muted, fontSize:12, marginBottom:10 }}>{selDay && (selDay.getMonth()+1)+"月"+selDay.getDate()+"日（"+DAYS_JP[selDay.getDay()]+"）"}　{dayRes.length}件</div>
-      {dayRes.length === 0 ? (<Card style={{ textAlign:"center", padding:32 }}><div style={{ color:COLORS.muted, fontSize:13 }}>予約なし</div></Card>) : (
-        <div style={{ position:"relative" }}><div style={{ display:"flex", gap:8 }}><div style={{ width:36 }}>{SLOTS.filter((_,i)=>i%2===0).map(s=>(<div key={s} style={{ height:48, display:"flex", alignItems:"flex-start", paddingTop:2 }}><span style={{ color:COLORS.muted, fontSize:9 }}>{s}</span></div>))}</div><div style={{ flex:1, position:"relative", borderLeft:"1px solid "+COLORS.border }}>{SLOTS.filter((_,i)=>i%2===0).map(s=>(<div key={s} style={{ height:48, borderBottom:"1px solid "+COLORS.border+"22" }} />))}{dayRes.map(r => { const [h,m] = r.time.split(":").map(Number); const startMin = (h-9)*60+m; const top = (startMin/30)*24; const height = Math.max((r.duration/30)*24, 22); const c = srcColor(r.source); return (<div key={r.id} style={{ position:"absolute", left:4, right:4, top:top, height:height, background: c+"33", border:"1px solid "+c+"88", borderRadius:6, padding:"3px 6px", overflow:"hidden" }}><div style={{ color:c, fontWeight:700, fontSize:10 }}>{r.time} {r.prefix}{r.name}</div><div style={{ color:COLORS.muted, fontSize:9 }}>{r.menu}</div></div>); })}</div></div></div>
+
+      <div style={{ color:C.sub, fontSize:15, marginBottom:12, fontWeight:600 }}>
+        {selDay && `${selDay.getMonth()+1}月${selDay.getDate()}日（${DAYS_JP[selDay.getDay()]}）`}　{dayRes.length}件
+      </div>
+
+      {dayRes.length===0 ? (
+        <Card style={{ textAlign:"center", padding:36 }}><div style={{ color:C.muted, fontSize:16 }}>予約なし</div></Card>
+      ) : (
+        <div style={{ position:"relative" }}>
+          <div style={{ display:"flex", gap:8 }}>
+            <div style={{ width:42 }}>
+              {SLOTS.filter((_,i)=>i%2===0).map(s=>(
+                <div key={s} style={{ height:52, display:"flex", alignItems:"flex-start", paddingTop:2 }}>
+                  <span style={{ color:C.muted, fontSize:11, fontFamily:"'JetBrains Mono',monospace" }}>{s}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ flex:1, position:"relative", borderLeft:`1px solid ${C.border}` }}>
+              {SLOTS.filter((_,i)=>i%2===0).map(s=>(
+                <div key={s} style={{ height:52, borderBottom:`1px solid ${C.border}22` }} />
+              ))}
+              {dayRes.map(r=>{
+                const [h,m]=r.time.split(":").map(Number);
+                const startMin=(h-9)*60+m;const top=(startMin/30)*26;
+                const height=Math.max((r.duration/30)*26,26);
+                const c=srcColor(r.source);
+                return (
+                  <div key={r.id} style={{
+                    position:"absolute", left:6, right:4, top, height,
+                    background:c+"30", border:`1px solid ${c}88`,
+                    borderRadius:8, padding:"4px 8px", overflow:"hidden"
+                  }}>
+                    <div style={{ color:c, fontWeight:700, fontSize:13 }}>{r.time} {r.prefix}{r.name}</div>
+                    <div style={{ color:C.muted, fontSize:11 }}>{r.menu}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-function Reservations({ reservations, apiUrl, onConvert }) {
-  const [filter, setFilter] = useState("all");
-  const [selectedId, setSelectedId] = useState(null);
-  const [converting, setConverting] = useState(null);
-  const [done, setDone] = useState({});
-  const [toast, setToast] = useState(null);
-  const filters = [{ key:"all",label:"すべて"},{key:"yoyaku",label:"要予約"},{key:"pending",label:"要確認"},{key:"confirmed",label:"確定"},{key:"reminded",label:"リマインド済"}];
-  const filtered = (filter==="all" ? reservations : filter==="yoyaku" ? reservations.filter(r=>r.prefix==="【要予約】" || r.source==="優先") : reservations.filter(r=>r.status===filter)).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
-  const pendingCount = reservations.filter(r => r.prefix === "【要予約】" && !done[r.id]).length;
-  const convertToU = async (id) => {
+/* ─── 予約画面 ─── */
+function Reservations({reservations,apiUrl,onConvert}) {
+  const [filter,setFilter]=useState("all");
+  const [selectedId,setSelectedId]=useState(null);
+  const [converting,setConverting]=useState(null);
+  const [done,setDone]=useState({});
+  const [sbDone,setSbDone]=useState({});
+  const [toast,setToast]=useState(null);
+  const tomorrow=getTomorrow();
+
+  const filters=[
+    {key:"all",label:"全件",color:"#fff",bg:C.accentBg,borderColor:C.accentBorder},
+    {key:"pending",label:"要確認",color:"#fff",bg:C.red,borderColor:"#a04040"},
+    {key:"confirmed",label:"確定",color:"#fff",bg:C.blue,borderColor:"#2d7a90"},
+    {key:"remind",label:"リマインド",color:"#fff",bg:"#4a2d6e",borderColor:"#6a4d8e"},
+  ];
+
+  const filtered=(()=>{
+    let list=reservations;
+    if(filter==="pending") list=reservations.filter(r=>r.status==="pending"||r.prefix==="【要予約】");
+    else if(filter==="confirmed") list=reservations.filter(r=>r.status==="confirmed");
+    else if(filter==="remind") list=reservations.filter(r=>r.date===tomorrow&&r.status!=="reminded");
+    return list.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+  })();
+
+  const pendingCount=reservations.filter(r=>r.prefix==="【要予約】"&&!done[r.id]).length;
+
+  const convertToU=async(id)=>{
     setConverting(id);
-    const isReal = apiUrl && !apiUrl.includes("YOUR_DEPLOYMENT_ID");
-    if (isReal) { try { await fetch(apiUrl, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"convertToU", eventId: id }) }); } catch(e) { console.error(e); } }
-    setDone(d => ({ ...d, [id]: true })); onConvert(id, { prefix:"【U】", status:"confirmed", source:"優先" }); setConverting(null); setSelectedId(null); setToast("【U】に変換しました"); setTimeout(() => setToast(null), 2500);
+    const isReal=apiUrl&&!apiUrl.includes("YOUR_DEPLOYMENT_ID");
+    if(isReal){
+      try{ await fetch(apiUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"convertToU",eventId:id})}); }
+      catch(e){console.error(e);}
+    }
+    setDone(d=>({...d,[id]:true}));
+    onConvert(id,{prefix:"【U】",status:"confirmed",source:"優先"});
+    setConverting(null);setSelectedId(null);
+    showToast("✅ 優先予約【U】に変換しました！");
   };
-  const selectedRes = selectedId ? reservations.find(r => r.id === selectedId) : null;
-  const showSheet = selectedRes && selectedRes.prefix === "【要予約】" && !done[selectedRes.id];
+
+  const handleSheetClose=(id,didSB)=>{
+    if(didSB){
+      setSbDone(prev=>({...prev,[id]:true}));
+      showToast("✅ SalonBoard連携完了！U変換ボタンが有効になりました");
+    }
+    setSelectedId(null);
+  };
+
+  const showToast=(msg)=>{
+    setToast(msg);
+    setTimeout(()=>setToast(null),2500);
+  };
+
+  const selectedRes=selectedId?reservations.find(r=>r.id===selectedId):null;
+  const showSheet=selectedRes&&selectedRes.prefix==="【要予約】"&&!done[selectedRes.id];
+
   return (
     <div>
-      <h2 style={{ color:COLORS.text, marginBottom:12, fontSize:18 }}>予約一覧</h2>
-      {pendingCount > 0 && (<div style={{ background: COLORS.orange+"18", border:"1px solid "+COLORS.orange+"55", borderRadius:8, padding:"9px 12px", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}><span style={{ fontSize:14 }}>📝</span><span style={{ color:COLORS.orange, fontSize:12, fontWeight:600 }}>サロンボード未書き込み：{pendingCount}件</span><span style={{ color:COLORS.muted, fontSize:10, marginLeft:"auto" }}>タップで対応</span></div>)}
-      <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>{filters.map(f => (<button key={f.key} onClick={()=>setFilter(f.key)} style={{ background:filter===f.key ? (f.key==="yoyaku"?COLORS.orange:COLORS.accent) : COLORS.card, color:filter===f.key?"#000":COLORS.muted, border:"1px solid "+(filter===f.key?(f.key==="yoyaku"?COLORS.orange:COLORS.accent):COLORS.border), borderRadius:20, padding:"5px 14px", fontSize:12, cursor:"pointer", fontWeight:600 }}>{f.label}</button>))}</div>
-      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {filtered.map(r => {
-          const isYoyaku = r.prefix === "【要予約】" || r.source === "優先"; const isDone = done[r.id];
-          return (<Card key={r.id} onClick={isYoyaku && !isDone ? () => setSelectedId(r.id) : undefined} style={{ padding:14, border: isYoyaku && !isDone ? "1px solid "+COLORS.orange+"88" : undefined, transition:"transform 0.15s" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}><div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}><span style={{ color:COLORS.muted, fontSize:11 }}>{r.date ? r.date.slice(5).replace("-","/") : ""}</span><span style={{ color:COLORS.accent, fontWeight:700, fontSize:14 }}>{r.time}</span><span style={{ color:COLORS.text, fontWeight:600, fontSize:13 }}>{r.name}</span>{r.rank && <Badge label={rankLabel[r.rank]} color={rankColor[r.rank]} small />}</div><Badge label={isDone ? "確定" : statusLabel[r.status]} color={isDone ? COLORS.green : statusColor[r.status]} small /></div>
-            <div style={{ color:COLORS.muted, fontSize:12, marginBottom:8 }}>{r.menu}　⏱ {r.duration}分</div>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}><div style={{ display:"flex", gap:6, alignItems:"center" }}><Badge label={isDone ? "優先" : isYoyaku ? "要予約" : r.source} color={isDone ? COLORS.purple : srcColor(isYoyaku?"要予約":r.source)} small />{r.visits ? <span style={{ color:COLORS.muted, fontSize:11 }}>来店{r.visits}回</span> : null}</div>{isYoyaku && !isDone && <span style={{ color:COLORS.orange, fontSize:11, fontWeight:600 }}>タップで対応 →</span>}{isDone && <span style={{ color:COLORS.green, fontSize:11, fontWeight:700 }}>✓ 【U】変換済み</span>}</div>
-          </Card>);
+      <h2 style={{ color:C.text, marginBottom:14, fontSize:20, fontWeight:800 }}>予約一覧</h2>
+
+      {pendingCount>0 && (
+        <div style={{ background:"#8b3a3a33", border:"2px solid #8b3a3a", borderRadius:12, padding:"12px 16px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ fontSize:16 }}>📝</span>
+          <span style={{ color:C.orange, fontSize:15, fontWeight:700 }}>SB未書き込み：{pendingCount}件</span>
+          <span style={{ color:C.muted, fontSize:13, marginLeft:"auto" }}>タップで対応</span>
+        </div>
+      )}
+
+      <div style={{ display:"flex", gap:10, marginBottom:18, overflowX:"auto", paddingBottom:4 }}>
+        {filters.map(f=>{
+          const active=filter===f.key;
+          return (
+            <button key={f.key} onClick={()=>setFilter(f.key)} style={{
+              padding:"10px 16px", border:`2px solid ${active?f.borderColor:C.border}`,
+              background:active?f.bg:C.card, color:active?f.color:C.sub,
+              borderRadius:20, fontSize:15, cursor:"pointer", fontWeight:600,
+              whiteSpace:"nowrap", transition:"all 0.2s"
+            }}>{f.label}</button>
+          );
         })}
       </div>
-      {showSheet && <SalonBoardSheet reservation={selectedRes} onClose={() => setSelectedId(null)} onConvert={convertToU} converting={converting === selectedRes.id} />}
-      {toast && (<div style={{ position:"fixed", top:80, left:"50%", transform:"translateX(-50%)", background:COLORS.purple, color:"#fff", padding:"8px 20px", borderRadius:8, fontSize:12, fontWeight:700, zIndex:200, boxShadow:"0 4px 16px "+COLORS.purple+"66", animation:"fadeToast 0.3s ease-out" }}>✓ {toast}</div>)}
+
+      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+        {filtered.length===0 ? (
+          <Card style={{ textAlign:"center", padding:32 }}>
+            <div style={{ color:C.muted, fontSize:16 }}>該当する予約はありません</div>
+          </Card>
+        ) : filtered.map((r,i)=>{
+          const isYoyaku=r.prefix==="【要予約】";const isDone=done[r.id];const isSbReady=sbDone[r.id];
+          /* カード背景色：ソース別 */
+          const isBlueSource = r.source==="事前予約"||r.source==="電話"||r.source==="優先"||r.prefix==="【N】"||r.prefix==="【U】"||r.prefix==="【T】";
+          const cardBg = isYoyaku&&!isDone ? "#332a24"
+            : r.source==="Hotpepper" ? "#3a1a1a"
+            : r.source==="LINE" ? "#1a2e1a"
+            : isBlueSource ? "#1a2a3a"
+            : C.card;
+          const cardBorder = isYoyaku&&!isDone ? "#5a3a1a"
+            : r.source==="Hotpepper" ? "#5a2a2a"
+            : r.source==="LINE" ? "#2a4a2a"
+            : isBlueSource ? "#2a4a5a"
+            : undefined;
+          return (
+            <div key={r.id} style={{
+              background:cardBg, borderRadius:12, padding:20,
+              boxShadow:"0 2px 8px rgba(0,0,0,0.3)",
+              border: cardBorder ? `1px solid ${cardBorder}` : "none",
+              borderLeft:`5px solid ${isYoyaku&&!isDone?C.orange:"#4a4a4a"}`,
+              animation:`fadeIn 0.3s ease-out ${i*0.03}s both`
+            }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+                <div style={{ fontSize:18, color:C.text, fontWeight:700 }}>
+                  🕐 {r.date?r.date.slice(5).replace("-","/"):""} {r.time}
+                </div>
+                <Badge label={isDone?"優先客":statusLabel[r.status]} bg={isDone?C.blue:statusBg[r.status]} />
+              </div>
+
+              <div style={{ fontSize:20, fontWeight:800, color:C.text, marginBottom:6, lineHeight:1.4 }}>
+                {r.prefix&&!isDone?r.prefix:""}{r.name}{isDone?"様":""}
+              </div>
+
+              <div style={{ fontSize:16, color:C.sub, marginBottom:16, lineHeight:1.5 }}>
+                {r.menu}　⏱ {r.duration}分
+              </div>
+
+              {isYoyaku && !isDone ? (
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={()=>setSelectedId(r.id)} style={{
+                    flex:1, padding:16, border:`2px solid ${C.accentBorder}`,
+                    background:C.accentBg, color:"#fff", borderRadius:10,
+                    fontSize:17, fontWeight:700, cursor:"pointer", minHeight:54
+                  }}>SB連携</button>
+                  <button onClick={()=>{if(isSbReady)convertToU(r.id);}}
+                    disabled={!isSbReady||converting===r.id}
+                    style={{
+                      flex:1, padding:16,
+                      border:`2px solid ${isSbReady?"#2d7a90":"#4a4a4a"}`,
+                      background:isSbReady?C.blue:"#3a3a3a",
+                      color:isSbReady?"#fff":"#6a6a6a",
+                      borderRadius:10, fontSize:17, fontWeight:700,
+                      cursor:isSbReady?"pointer":"not-allowed",
+                      minHeight:54, opacity:isSbReady?1:0.6,
+                      display:"flex", alignItems:"center", justifyContent:"center", gap:6
+                    }}>
+                    {converting===r.id ? (
+                      <><span style={{ display:"inline-block", width:16, height:16, border:"2px solid #fff", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />変換中…</>
+                    ) : <>U変換 {isSbReady?"✅":"🔒"}</>}
+                  </button>
+                </div>
+              ) : isDone ? (
+                <div style={{
+                  textAlign:"center", padding:14, background:"#1e3a3a",
+                  borderRadius:10, fontSize:16, color:C.blueBright,
+                  fontWeight:700, border:"2px solid #2d5a5a"
+                }}>✓ 優先予約確定済み</div>
+              ) : (
+                <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                  <Badge label={r.source} bg={srcColor(r.source)} />
+                  {r.visits && <span style={{ color:C.muted, fontSize:13 }}>来店{r.visits}回</span>}
+                  {r.rank && <Badge label={rankLabel[r.rank]} bg={rankColor[r.rank]+"66"} color={rankColor[r.rank]} />}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {showSheet && (
+        <SalonBoardSheet
+          reservation={selectedRes}
+          onClose={(didSB)=>handleSheetClose(selectedRes.id,didSB)}
+          converting={converting===selectedRes?.id}
+        />
+      )}
+
+      {toast && (
+        <div style={{
+          position:"fixed", top:24, left:"50%", transform:"translateX(-50%)",
+          background:C.accentBg, color:"#fff", padding:"16px 28px", borderRadius:12,
+          fontSize:16, fontWeight:600, zIndex:2000,
+          boxShadow:"0 4px 20px rgba(0,0,0,0.5)", border:`2px solid ${C.accentBorder}`,
+          animation:"fadeToast 0.3s ease-out"
+        }}>{toast}</div>
+      )}
     </div>
   );
 }
 
-function Customers({ customers }) {
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(null);
-  const filtered = customers.filter(c=>c.name.includes(search)||c.kana.includes(search));
-  if (selected) {
-    const c = customers.find(x=>x.id===selected);
-    return (<div><button onClick={()=>setSelected(null)} style={{ background:"none", border:"none", color:COLORS.accent, cursor:"pointer", fontSize:13, marginBottom:16 }}>← 一覧に戻る</button><Card><div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}><div><div style={{ color:COLORS.text, fontSize:20, fontWeight:700 }}>{c.name}</div><div style={{ color:COLORS.muted, fontSize:12 }}>{c.kana}</div></div><Badge label={rankLabel[c.rank]} color={rankColor[c.rank]} /></div><div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>{[["来店回数",c.visits+"回"],["最終来店",c.lastVisit],["主な経路",c.source]].map(([k,v])=>(<div key={k} style={{ background:COLORS.surface, borderRadius:8, padding:10 }}><div style={{ color:COLORS.muted, fontSize:10, marginBottom:4 }}>{k}</div><div style={{ color:COLORS.text, fontSize:14, fontWeight:600 }}>{v}</div></div>))}</div>{c.memo && <div style={{ background:COLORS.accentSoft, borderRadius:8, padding:10 }}><div style={{ color:COLORS.accent, fontSize:10, marginBottom:4 }}>📝 メモ</div><div style={{ color:COLORS.text, fontSize:13 }}>{c.memo}</div></div>}</Card></div>);
-  }
-  return (<div><h2 style={{ color:COLORS.text, marginBottom:16, fontSize:18 }}>顧客管理</h2><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="名前・カナで検索…" style={{ width:"100%", background:COLORS.card, border:"1px solid "+COLORS.border, borderRadius:8, padding:"8px 12px", color:COLORS.text, fontSize:13, boxSizing:"border-box", marginBottom:14 }} /><div style={{ display:"flex", flexDirection:"column", gap:8 }}>{filtered.map(c=>(<Card key={c.id} style={{ padding:12 }} onClick={()=>setSelected(c.id)}><div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}><div><span style={{ color:COLORS.text, fontWeight:600, fontSize:14 }}>{c.name}</span><span style={{ color:COLORS.muted, fontSize:11, marginLeft:8 }}>{c.kana}</span></div><div style={{ display:"flex", gap:6, alignItems:"center" }}><Badge label={rankLabel[c.rank]} color={rankColor[c.rank]} small /><span style={{ color:COLORS.muted, fontSize:11 }}>{c.visits}回</span></div></div><div style={{ color:COLORS.muted, fontSize:11, marginTop:4 }}>最終来店: {c.lastVisit}　経路: <span style={{ color:srcColor(c.source) }}>{c.source}</span></div></Card>))}</div></div>);
-}
+/* ─── 設定画面 ─── */
+function Settings({apiUrl,setApiUrl,refetch}) {
+  const [saved,setSaved]=useState(false);
+  const [localUrl,setLocalUrl]=useState(apiUrl);
+  const handleSave=()=>{
+    setApiUrl(localUrl);
+    localStorage.setItem("reservekit_api_url",localUrl);
+    setSaved(true);
+    setTimeout(()=>{setSaved(false);refetch();},500);
+  };
 
-function Settings({ apiUrl, setApiUrl, refetch }) {
-  const [saved, setSaved] = useState(false);
-  const [localUrl, setLocalUrl] = useState(apiUrl);
-  const handleSave = () => { setApiUrl(localUrl); localStorage.setItem("reservekit_api_url", localUrl); setSaved(true); setTimeout(()=>{ setSaved(false); refetch(); }, 500); };
   return (
     <div>
-      <h2 style={{ color:COLORS.text, marginBottom:16, fontSize:18 }}>設定</h2>
-      <Card style={{ marginBottom:12 }}>
-        <div style={{ color:COLORS.accent, fontSize:12, fontWeight:700, marginBottom:12 }}>🔌 GAS API接続</div>
-        <div style={{ marginBottom:12 }}>
-          <div style={{ color:COLORS.muted, fontSize:11, marginBottom:4 }}>GAS デプロイURL</div>
-          <input value={localUrl} onChange={e=>setLocalUrl(e.target.value)} placeholder="https://script.google.com/macros/s/.../exec" style={{ width:"100%", background:COLORS.surface, border:"1px solid "+COLORS.border, borderRadius:6, padding:"7px 10px", color:COLORS.text, fontSize:11, boxSizing:"border-box", fontFamily:"monospace" }} />
+      <h2 style={{ color:C.text, marginBottom:16, fontSize:20, fontWeight:800 }}>設定</h2>
+      <Card style={{ marginBottom:16 }}>
+        <div style={{ color:C.accent, fontSize:16, fontWeight:700, marginBottom:14 }}>🔌 GAS API接続</div>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ color:C.sub, fontSize:13, marginBottom:6 }}>GAS デプロイURL</div>
+          <input value={localUrl} onChange={e=>setLocalUrl(e.target.value)}
+            placeholder="https://script.google.com/macros/s/.../exec"
+            style={{
+              width:"100%", background:C.surface, border:`2px solid ${C.border}`,
+              borderRadius:10, padding:"12px 14px", color:C.text, fontSize:13,
+              boxSizing:"border-box", fontFamily:"'JetBrains Mono',monospace"
+            }}
+          />
         </div>
       </Card>
-      <Card style={{ marginBottom:12 }}>
-        <div style={{ color:COLORS.accent, fontSize:12, fontWeight:700, marginBottom:12 }}>🎖 ランク設定</div>
-        {[["STANDARD","1〜15回"],["SILVER","16〜30回"],["GOLD","31回以上"]].map(([r,range])=>(<div key={r} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"8px 0", borderBottom:"1px solid "+COLORS.border }}><Badge label={r} color={rankColor[r.toLowerCase()]} /><span style={{ color:COLORS.muted, fontSize:12 }}>{range}</span></div>))}
+      <Card style={{ marginBottom:16 }}>
+        <div style={{ color:C.accent, fontSize:16, fontWeight:700, marginBottom:14 }}>🎖 ランク設定</div>
+        {[["STANDARD","1〜15回"],["SILVER","16〜30回"],["GOLD","31回以上"]].map(([r,range])=>(
+          <div key={r} style={{
+            display:"flex", justifyContent:"space-between", alignItems:"center",
+            padding:"12px 0", borderBottom:`1px solid ${C.border}`
+          }}>
+            <Badge label={r} bg={rankColor[r.toLowerCase()]+"66"} color={rankColor[r.toLowerCase()]} />
+            <span style={{ color:C.sub, fontSize:15 }}>{range}</span>
+          </div>
+        ))}
       </Card>
-      <button onClick={handleSave} style={{ width:"100%", background:saved?COLORS.green:COLORS.accent, color:"#000", border:"none", borderRadius:8, padding:"12px", fontSize:14, fontWeight:700, cursor:"pointer", transition:"background 0.3s" }}>{saved ? "✓ 保存 → 再取得中…" : "設定を保存 & 再取得"}</button>
+      <button onClick={handleSave} style={{
+        width:"100%", background:saved?C.green:C.accentBg, color:"#fff",
+        border:`2px solid ${saved?C.green:C.accentBorder}`,
+        borderRadius:12, padding:"16px", fontSize:17,
+        fontWeight:700, cursor:"pointer", minHeight:54
+      }}>{saved?"✓ 保存 → 再取得中…":"設定を保存 & 再取得"}</button>
     </div>
   );
 }
 
+/* ─── メインApp（4タブ） ─── */
 function App() {
-  const savedUrl = localStorage.getItem("reservekit_api_url") || "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
-  const [tab, setTab] = useState("dashboard");
-  const [apiUrl, setApiUrl] = useState(savedUrl);
-  const { data, customers, loading, error, refetch, isReal, lastFetched, updateLocal } = useReservations(apiUrl);
-  const tabs = [{ key:"dashboard", icon:"◎", label:"ホーム" },{ key:"calendar", icon:"📅", label:"カレンダー" },{ key:"reservations", icon:"📋", label:"予約" },{ key:"customers", icon:"👤", label:"顧客" },{ key:"settings", icon:"⚙", label:"設定" }];
-  const pendingCount = data.filter(r => r.prefix === "【要予約】").length;
+  const savedUrl=localStorage.getItem("reservekit_api_url")||GAS_API_DEFAULT;
+  const [tab,setTab]=useState("dashboard");
+  const [apiUrl,setApiUrl]=useState(savedUrl);
+  const {data,homeStats,loading,error,refetch,isReal,lastFetched,updateLocal}=useReservations(apiUrl);
+
+  const tabs=[
+    {key:"dashboard",label:"ホーム"},
+    {key:"calendar", label:"カレンダー"},
+    {key:"reservations",label:"予約"},
+    {key:"settings", label:"設定"},
+  ];
+  const pendingCount=data.filter(r=>r.prefix==="【要予約】").length;
+
   return (
-    <div style={{ background:COLORS.bg, minHeight:"100vh", color:COLORS.text, fontFamily:"'Segoe UI',system-ui,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto" }}>
-      <div style={{ background:COLORS.surface, borderBottom:"1px solid "+COLORS.border, padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10 }}><div><div style={{ color:COLORS.accent, fontWeight:800, fontSize:16, letterSpacing:1 }}>ReserveKit</div><div style={{ color:COLORS.muted, fontSize:10 }}>予約管理システム</div></div><div style={{ display:"flex", alignItems:"center", gap:8 }}>{loading && <span style={{ color:COLORS.muted, fontSize:10 }}>同期中…</span>}<div style={{ background:COLORS.accentSoft, color:COLORS.accent, borderRadius:6, padding:"4px 10px", fontSize:11, fontWeight:600 }}>{getTodayShort()}</div></div></div>
-      <div style={{ flex:1, padding:"20px 16px 80px", overflowY:"auto" }}>
-        {tab==="dashboard" && <Dashboard reservations={data} loading={loading} error={error} refetch={refetch} isReal={isReal} lastFetched={lastFetched} />}
+    <div style={{
+      background:C.bg, minHeight:"100vh", color:C.text,
+      fontFamily:"'Noto Sans JP',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto"
+    }}>
+      {/* ヘッダー */}
+      <div style={{
+        background:`linear-gradient(135deg, ${C.accentBg} 0%, #0f2b12 100%)`,
+        padding:"20px 24px", textAlign:"center",
+        position:"sticky", top:0, zIndex:10
+      }}>
+        <div style={{ color:"#fff", fontWeight:800, fontSize:24, letterSpacing:1, marginBottom:4 }}>📱 ReserveKit</div>
+        <div style={{ color:"rgba(255,255,255,0.8)", fontSize:14 }}>Enchante Hair</div>
+        {loading && <div style={{ color:"rgba(255,255,255,0.5)", fontSize:12, marginTop:4, animation:"pulse 1.5s infinite" }}>同期中…</div>}
+      </div>
+
+      {/* タブバー（上部） */}
+      <div style={{
+        display:"flex", background:"#252525",
+        borderBottom:`2px solid ${C.border}`, position:"sticky", top:76, zIndex:10
+      }}>
+        {tabs.map(t=>(
+          <button key={t.key} onClick={()=>setTab(t.key)} style={{
+            flex:1, padding:"16px 0", background:tab===t.key?"#2a2a2a":"transparent",
+            border:"none", borderBottom:`3px solid ${tab===t.key?C.accentBg:"transparent"}`,
+            color:tab===t.key?C.accent:C.muted,
+            fontSize:15, fontWeight:600, cursor:"pointer",
+            transition:"all 0.2s", position:"relative"
+          }}>
+            {t.label}
+            {t.key==="reservations"&&pendingCount>0 && (
+              <span style={{
+                position:"absolute", top:6, right:"10%",
+                background:C.orange, color:"#000",
+                fontSize:10, fontWeight:800, borderRadius:8,
+                padding:"1px 6px", minWidth:14, textAlign:"center"
+              }}>{pendingCount}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* コンテンツ */}
+      <div style={{ flex:1, padding:"18px", overflowY:"auto" }}>
+        {tab==="dashboard" && <Dashboard reservations={data} homeStats={homeStats} loading={loading} error={error} refetch={refetch} isReal={isReal} lastFetched={lastFetched} />}
         {tab==="calendar" && <Calendar reservations={data} />}
         {tab==="reservations" && <Reservations reservations={data} apiUrl={apiUrl} onConvert={updateLocal} />}
-        {tab==="customers" && <Customers customers={customers} />}
         {tab==="settings" && <Settings apiUrl={apiUrl} setApiUrl={setApiUrl} refetch={refetch} />}
-      </div>
-      <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:480, background:COLORS.surface, borderTop:"1px solid "+COLORS.border, display:"flex" }}>
-        {tabs.map(t => (<button key={t.key} onClick={()=>setTab(t.key)} style={{ flex:1, background:"none", border:"none", padding:"9px 0 20px", cursor:"pointer", color:tab===t.key?COLORS.accent:COLORS.muted, display:"flex", flexDirection:"column", alignItems:"center", gap:2, position:"relative" }}><span style={{ fontSize:16, position:"relative" }}>{t.icon}{t.key === "reservations" && pendingCount > 0 && (<span style={{ position:"absolute", top:-4, right:-8, background:COLORS.orange, color:"#000", fontSize:8, fontWeight:800, borderRadius:6, padding:"1px 4px", minWidth:12, textAlign:"center" }}>{pendingCount}</span>)}</span><span style={{ fontSize:9, fontWeight:tab===t.key?700:400 }}>{t.label}</span></button>))}
       </div>
     </div>
   );

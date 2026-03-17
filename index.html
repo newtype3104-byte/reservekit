@@ -104,7 +104,7 @@ function getMonthRange() {
 }
 function getSalonBoardUrl(r) {
   const dateParam=r.date.replace(/-/g,"");
-  const timeParam=r.time.replace(":","")+"00";
+  const timeParam=r.time.replace(":","");
   const now=new Date().toISOString().replace(/[-T:.Z]/g,"").slice(0,14);
   return `https://salonboard.com/CLP/bt/reserve/ext/extReserveRegist/?date=${dateParam}&time=${timeParam}&stylistId=${STYLIST_ID}&rlastupdate=${now}`;
 }

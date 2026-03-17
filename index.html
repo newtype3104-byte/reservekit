@@ -298,7 +298,7 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
   const weekCount   = homeStats?.weekCount   ?? reservations.filter(r=>r.date>=weekStart&&r.date<=weekEnd).length;
   const monthCount  = homeStats?.monthCount  ?? reservations.filter(r=>r.date>=monthStart&&r.date<=monthEnd).length;
   const pendingCount= homeStats?.pendingCount?? reservations.filter(r=>r.status==="pending"||r.prefix==="【要予約】").length;
-  const remindNeed  = homeStats?.remindNeedCount ?? reservations.filter(r=>r.date===tomorrow&&r.status!=="reminded").length;
+  const remindNeed  = homeStats?.remindNeedCount ?? reservations.filter(r=>r.date===tomorrow&&r.prefix==="【U】").length;
 
   const todays=reservations.filter(r=>r.date===today).sort((a,b)=>a.time.localeCompare(b.time));
 
@@ -340,7 +340,7 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
           <span style={{ fontSize:18 }}>🔔</span>
           <div>
             <div style={{ color:C.purple, fontSize:15, fontWeight:700 }}>リマインド必要：{remindNeed}件</div>
-            <div style={{ color:C.muted, fontSize:13 }}>明日の予約で未送信</div>
+            <div style={{ color:C.muted, fontSize:13 }}>明日の【U】予約で未送信</div>
           </div>
         </div>
       )}
@@ -495,7 +495,7 @@ function Reservations({reservations,apiUrl,onConvert}) {
     let list=reservations;
     if(filter==="pending") list=reservations.filter(r=>r.status==="pending"||r.prefix==="【要予約】");
     else if(filter==="confirmed") list=reservations.filter(r=>r.status==="confirmed");
-    else if(filter==="remind") list=reservations.filter(r=>r.date===tomorrow&&r.status!=="reminded");
+    else if(filter==="remind") list=reservations.filter(r=>r.date===tomorrow&&r.prefix==="【U】");
     return list.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
   })();
 

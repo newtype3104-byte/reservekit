@@ -505,7 +505,7 @@ function Reservations({reservations,apiUrl,onConvert}) {
     setConverting(id);
     const isReal=apiUrl&&!apiUrl.includes("YOUR_DEPLOYMENT_ID");
     if(isReal){
-      try{ await fetch(apiUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"convertToU",eventId:id})}); }
+      try{ await fetch(apiUrl+"?action=convertToU&eventId="+encodeURIComponent(id)); }
       catch(e){console.error(e);}
     }
     setDone(d=>({...d,[id]:true}));

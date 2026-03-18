@@ -299,7 +299,7 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
   const monthCount  = homeStats?.monthCount  ?? reservations.filter(r=>r.date>=monthStart&&r.date<=monthEnd).length;
   const pendingCount= homeStats?.pendingCount?? reservations.filter(r=>r.status==="pending"||r.prefix==="【要予約】").length;
   const remindNeed  = homeStats?.remindNeedCount ?? reservations.filter(r=>r.date===tomorrow&&r.prefix==="【U】").length;
-
+  const untitled = homeStats?.untitledPlaceholders ?? [];
   const todays=reservations.filter(r=>r.date===today).sort((a,b)=>a.time.localeCompare(b.time));
 
   // 経路データ
@@ -344,7 +344,45 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
           </div>
         </div>
       )}
-
+      {untitled.length > 0 && (
+        <div style={{
+          background: "#5b9dee22",
+          border: "2px solid #3a6aa8",
+          borderRadius: 12,
+          padding: "14px 16px",
+          marginBottom: 16
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: untitled.length > 1 ? 10 : 0 }}>
+            <span style={{ fontSize: 18 }}>📞</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: "#5b9dee", fontSize: 15, fontWeight: 700 }}>
+                電話予約プレースホルダー：{untitled.length}件
+              </div>
+              <div style={{ color: "#808080", fontSize: 13 }}>
+                タイトルなしの予定 → 【T】姓名 に書き換えてください
+              </div>
+            </div>
+          </div>
+          {untitled.map((u, idx) => (
+            <div key={u.id || idx} style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 12px", marginTop: 8,
+              background: "#1a2a3a", borderRadius: 8,
+              border: "1px solid #2a4a5a"
+            }}>
+              <span style={{
+                color: "#5b9dee", fontWeight: 800, fontSize: 15,
+                fontFamily: "'JetBrains Mono',monospace", minWidth: 90
+              }}>
+                {u.date ? u.date.slice(5).replace("-", "/") : ""} {u.time}
+              </span>
+              <span style={{ color: "#808080", fontSize: 13 }}>
+                〜 {u.endTime}（{u.duration}分）
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {reservations.filter(r=>r.prefix==="【要予約】").length>0 && (
         <div style={{ background:"#8b3a3a33", border:"2px solid #8b3a3a", borderRadius:12, padding:"14px 16px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
           <span style={{ fontSize:18 }}>📝</span>

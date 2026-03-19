@@ -416,6 +416,19 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
               <div style={{ color:C.text, fontSize:16, fontWeight:700 }}>{r.prefix}{r.name}</div>
               <div style={{ color:C.sub, fontSize:13, marginTop:2 }}>{r.menu}（{r.duration}分）</div>
             </div>
+           {r.hasKarte && (
+              <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId}
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  background:"#1c1c28", border:"1px solid #252535",
+                  color:"#c9a96e", borderRadius:8, padding:"6px 10px",
+                  fontSize:12, fontWeight:700, textDecoration:"none",
+                  whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:4
+                }}
+                onClick={e=>e.stopPropagation()}>
+                📋<span style={{fontSize:11}}>カルテ</span>
+              </a>
+            )}
             <Badge label={statusLabel[r.status]} bg={statusBg[r.status]} />
           </div>
         ))}

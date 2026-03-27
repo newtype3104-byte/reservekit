@@ -545,7 +545,7 @@ function Reservations({reservations,apiUrl,onConvert}) {
   const filtered=(()=>{
     let list=reservations;
     if(filter==="pending") list=reservations.filter(r=>r.status==="pending"||r.prefix==="【要予約】");
-    else if(filter==="confirmed") list=reservations.filter(r=>r.status==="confirmed"||r.status==="reminded"
+    else if(filter==="confirmed") list=reservations.filter(r=>r.status==="confirmed"||r.status==="reminded");
     else if(filter==="remind") list=reservations.filter(r=>r.date===tomorrow&&r.prefix==="【U】");
     return list.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
   })();

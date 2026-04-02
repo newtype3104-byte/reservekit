@@ -538,7 +538,6 @@ function Reservations({reservations,apiUrl,onConvert}) {
   const filters=[
     {key:"all",label:"全件",color:"#fff",bg:C.accentBg,borderColor:C.accentBorder},
     {key:"pending",label:"要確認",color:"#fff",bg:C.red,borderColor:"#a04040"},
-    {key:"confirmed",label:"確定",color:"#fff",bg:C.blue,borderColor:"#2d7a90"},
     {key:"remind",label:"リマインド",color:"#fff",bg:"#4a2d6e",borderColor:"#6a4d8e"},
   ];
 
@@ -644,8 +643,23 @@ function Reservations({reservations,apiUrl,onConvert}) {
                 {r.prefix&&!isDone?r.prefix:""}{r.name}{isDone?"様":""}
               </div>
 
-              <div style={{ fontSize:16, color:C.sub, marginBottom:16, lineHeight:1.5 }}>
-                {r.menu}　⏱ {r.duration}分
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+                <div style={{ fontSize:16, color:C.sub, lineHeight:1.5 }}>
+                  {r.menu}　⏱ {r.duration}分
+                </div>
+                {r.hasKarte && (
+                  <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{
+                      background:"#1c1c28", border:"1px solid #252535",
+                      color:"#c9a96e", borderRadius:8, padding:"6px 10px",
+                      fontSize:12, fontWeight:700, textDecoration:"none",
+                      whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:4
+                    }}
+                    onClick={e=>e.stopPropagation()}>
+                    📋<span style={{fontSize:11}}>カルテ</span>
+                  </a>
+                )}
               </div>
 
               {isYoyaku && !isDone ? (

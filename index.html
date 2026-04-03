@@ -328,13 +328,42 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
         {error && <div style={{ color:"#e05c5c", marginTop:4, fontSize:13 }}>エラー: {error}</div>}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
         <StatCard label="今日" value={todayCount} unit="件" color={C.accent} icon="📅" />
-        <StatCard label="今週" value={weekCount} unit="件" color={C.blueBright} icon="📊" />
         <StatCard label="今月" value={monthCount} unit="件" color={C.cyan} icon="📈" />
         <StatCard label="要確認" value={pendingCount} unit="件" color={C.orange} icon="⚠️" />
       </div>
-
+{/* ── 今週の空き時間 ── */}
+      {homeStats?.weekFreeSlots && (
+        <div style={{
+          background:C.card, borderRadius:12, padding:"14px 16px",
+          marginBottom:16, boxShadow:"0 2px 8px rgba(0,0,0,0.3)"
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+            <span style={{ fontSize:16 }}>📊</span>
+            <span style={{ color:C.sub, fontSize:14, fontWeight:700 }}>今週の空き</span>
+          </div>
+          {homeStats.weekFreeSlots.map((day, i) => (
+            <div key={i} style={{
+              display:"flex", gap:10, padding:"6px 0",
+              borderTop: i>0 ? `1px solid ${C.border}` : "none",
+              opacity: day.past ? 0.35 : 1
+            }}>
+              <span style={{
+                color: day.closed ? "#e05c5c" : C.text,
+                fontSize:13, fontWeight:700, minWidth:62, flexShrink:0
+              }}>{day.date}</span>
+              <span style={{
+                color: day.closed ? "#e05c5c" : day.slots.length===0 ? C.muted : C.accent,
+                fontSize:13, fontWeight: day.slots.length>0 ? 600 : 400,
+                lineHeight: 1.5
+              }}>
+                {day.past ? "－" : day.closed ? "定休日" : day.slots.length===0 ? "× 満席" : day.slots.join("、 ")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {remindNeed>0 && (
         <div style={{ background:"#4a2d6e33", border:"2px solid #4a2d6e", borderRadius:12, padding:"14px 16px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
           <span style={{ fontSize:18 }}>🔔</span>

@@ -343,7 +343,7 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
             <span style={{ fontSize:16 }}>📊</span>
             <span style={{ color:C.sub, fontSize:14, fontWeight:700 }}>今週の空き</span>
           </div>
-          {homeStats.weekFreeSlots.map((day, i) => (
+          {homeStats.weekFreeSlots.filter(day => !day.past).map((day, i) => (
             <div key={i} style={{
               display:"flex", gap:10, padding:"6px 0",
               borderTop: i>0 ? `1px solid ${C.border}` : "none",

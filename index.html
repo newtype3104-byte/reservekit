@@ -311,7 +311,23 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-        <h2 style={{ color:C.text, fontSize:20, fontWeight:800 }}>{getTodayLabel()}</h2>
+<div>
+  <h2 style={{ color:C.text, fontSize:20, fontWeight:800 }}>{getTodayLabel()}</h2>
+  {homeStats?.todayMemos?.length > 0 && (
+    <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:4 }}>
+      {homeStats.todayMemos.map((memo, i) => (
+        <div key={i} style={{
+          background:"#2a1a00", border:"1px solid #5a3a00",
+          borderRadius:8, padding:"6px 12px",
+          color:"#f0a830", fontSize:13, fontWeight:600,
+          display:"flex", alignItems:"center", gap:6
+        }}>
+          📌 {memo}
+        </div>
+      ))}
+    </div>
+  )}
+</div>
         <button onClick={refetch} disabled={loading} style={{
           background:C.card, border:`2px solid ${C.border}`, color:loading?C.muted:C.accent,
           borderRadius:10, padding:"8px 16px", fontSize:14, cursor:"pointer", fontWeight:600

@@ -459,7 +459,7 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
             <span style={{ color:C.accent, fontWeight:800, width:52, fontSize:18, fontFamily:"'JetBrains Mono',monospace" }}>{r.time}</span>
             <div style={{ flex:1 }}>
               <div style={{ color:C.text, fontSize:16, fontWeight:700 }}>{r.prefix}{r.name}</div>
-              <div style={{ color:C.sub, fontSize:13, marginTop:2 }}>{r.menu}（{r.duration}分）</div>
+              <div style={{ color:C.sub, fontSize:13, marginTop:2 }}>{r.menu||"—"}（{r.duration}分）</div>
             </div>
            {r.hasKarte && (
               <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId}
@@ -690,7 +690,7 @@ function Reservations({reservations,apiUrl,onConvert}) {
 
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                 <div style={{ fontSize:16, color:C.sub, lineHeight:1.5 }}>
-                  {r.menu}　⏱ {r.duration}分
+                  {r.menu||"—"}　⏱ {r.duration}分
                 </div>
                 {r.hasKarte && (
                   <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId}

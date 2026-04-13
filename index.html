@@ -177,6 +177,72 @@ const RouteSection = ({title, route, total}) => (
   </Card>
 );
 
+/* ─── チャネル別リピート分析 ─── */
+function RepeatAnalysis({reservations}) {
+  const channels = {};
+  reservations.forEach(r => {
+    const src = r.source || 'その他';
+    if (!channels[src]) channels[src] = { total:0, newCount:0, repeatCount:0, sumVisits:0 };
+    const v = typeof r.visits === 'number' ? r.visits : 1;
+    channels[src].total++;
+    channels[src].sumVisits += v;
+    if (v <= 1) channels[src].newCount++;
+    else        channels[src].repeatCount++;
+  });
+
+  const sorted = Object.entries(channels)
+    .filter(([,d]) => d.total > 0)
+    .sort((a,b) => b[1].total - a[1].total);
+
+  if (sorted.length === 0) return null;
+
+  return (
+    <Card style={{ marginBottom:16 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+        <span style={{ color:C.sub, fontSize:14, fontWeight:600 }}>🔁 チャネル別リピート率</span>
+        <span style={{ color:C.muted, fontSize:12 }}>表示中の予約より</span>
+      </div>
+      {sorted.map(([src, d]) => {
+        const repeatRate = d.total > 0 ? Math.round(d.repeatCount / d.total * 100) : 0;
+        const avgVisits  = d.total > 0 ? (d.sumVisits / d.total).toFixed(1) : '—';
+        const barColor   = srcColor(src);
+        const rateColor  = repeatRate >= 70 ? C.green : repeatRate >= 40 ? C.orange : '#e05c5c';
+        return (
+          <div key={src} style={{ marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ color:"#fff", fontSize:14, fontWeight:700 }}>{src}</span>
+                <span style={{ color:C.muted, fontSize:12 }}>{d.total}件</span>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ color:C.muted, fontSize:12 }}>平均{avgVisits}回</span>
+                <span style={{
+                  color:rateColor, fontSize:15, fontWeight:800,
+                  fontFamily:"'JetBrains Mono',monospace", minWidth:38, textAlign:"right"
+                }}>{repeatRate}%</span>
+              </div>
+            </div>
+            {/* 新規 / リピート スプリットバー */}
+            <div style={{ background:"#1a1a1a", borderRadius:6, height:10, overflow:"hidden", display:"flex" }}>
+              <div style={{
+                background:barColor,
+                width: repeatRate + "%",
+                height:"100%",
+                transition:"width 0.6s ease",
+                borderRadius: repeatRate===100 ? 6 : "6px 0 0 6px"
+              }} />
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", marginTop:3 }}>
+              <span style={{ color:C.muted, fontSize:11 }}>🌱 新規 {d.newCount}件</span>
+              <span style={{ color:barColor, fontSize:11 }}>🔁 リピート {d.repeatCount}件</span>
+            </div>
+          </div>
+        );
+      })}
+    </Card>
+  );
+}
+
 /* ─── データ取得フック ─── */
 function useReservations(apiUrl) {
   const [data,setData]=useState(MOCK);
@@ -445,6 +511,8 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
       {yearRoute && yearRouteTotal > 0 && (
         <RouteSection title="📊 今年の予約経路" route={yearRoute} total={yearRouteTotal} />
       )}
+
+      <RepeatAnalysis reservations={reservations} />
 
       <Card>
         <div style={{ color:C.sub, fontSize:14, fontWeight:600, marginBottom:14 }}>🕐 本日のタイムライン</div>

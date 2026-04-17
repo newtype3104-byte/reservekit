@@ -256,7 +256,7 @@ function useReservations(apiUrl) {
     if(!isReal){setData(MOCK);setError(null);return;}
     setLoading(true);setError(null);
     try{
-      const r=await fetch(apiUrl+"?action=getReservations&token=f43240ce356a46964f0553c42bf447afed8de142");
+      const r=await fetch(apiUrl+"?action=getReservations&token=8df24bd159ed28564bacadb15286c93edd2c104c");
       if(!r.ok)throw new Error("HTTP "+r.status);
       const j=await r.json();
       if(j.reservations)setData(j.reservations);
@@ -268,7 +268,7 @@ function useReservations(apiUrl) {
   const fetchHomeStats=useCallback(async()=>{
     if(!isReal){setHomeStats(null);return;}
     try{
-      const r=await fetch(apiUrl+"?action=getHomeStats&token=f43240ce356a46964f0553c42bf447afed8de142");
+      const r=await fetch(apiUrl+"?action=getHomeStats&token=8df24bd159ed28564bacadb15286c93edd2c104c");
       if(!r.ok)throw new Error("HTTP "+r.status);
       const j=await r.json();
       setHomeStats(j);
@@ -668,7 +668,7 @@ function Reservations({reservations,apiUrl,onConvert}) {
     setConverting(id);
     const isReal=apiUrl&&!apiUrl.includes("YOUR_DEPLOYMENT_ID");
     if(isReal){
-      try{ await fetch(apiUrl+"?action=convertToU&token=f43240ce356a46964f0553c42bf447afed8de142&eventId="+encodeURIComponent(id)); }
+      try{ await fetch(apiUrl+"?action=convertToU&token=8df24bd159ed28564bacadb15286c93edd2c104c&eventId="+encodeURIComponent(id)); }
       catch(e){console.error(e);}
     }
     setDone(d=>({...d,[id]:true}));

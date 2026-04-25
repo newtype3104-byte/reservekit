@@ -55,6 +55,7 @@ const C = {
 };
 
 const STYLIST_ID = "T000508663";
+const ADMIN_TOKEN = "iR51IYUu4JgG66ZXcdt5UjGFK0w7U1Eu7COkGDZ0nCQr97drS4cmbkXqTRYjiV0zevBj";
 const GAS_API_DEFAULT = "https://script.google.com/macros/s/AKfycbxxgLMI6EpUIQBtwzYC7232rBJME2wJA6_JzmckvjkYiMvZdI6KGl9l_lKn2w6zhgzL/exec";
 
 /* ─── モックデータ ─── */
@@ -464,7 +465,7 @@ function Dashboard({reservations,homeStats,loading,error,refetch,isReal,lastFetc
               <div style={{ color:C.sub, fontSize:13, marginTop:2 }}>{r.menu||"—"}（{r.duration}分）</div>
             </div>
            {r.hasKarte && (
-              <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId}
+              <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId+"&admin="+ADMIN_TOKEN}
                 target="_blank" rel="noopener noreferrer"
                 style={{
                   background:"#1c1c28", border:"1px solid #252535",
@@ -695,7 +696,7 @@ function Reservations({reservations,apiUrl,onConvert}) {
                   {r.menu||"—"}　⏱ {r.duration}分
                 </div>
                 {r.hasKarte && (
-                  <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId}
+                  <a href={"https://script.google.com/macros/s/AKfycbwhhsOX7nnBnRb1zhjxnOpQcTKTEAg4lVoTzV-A60fq1cuwx7xXiR-2YtZbSGCBi8dSNw/exec?view=karte&cid="+r.customerId+"&admin="+ADMIN_TOKEN}
                     target="_blank" rel="noopener noreferrer"
                     style={{
                       background:"#1c1c28", border:"1px solid #252535",
